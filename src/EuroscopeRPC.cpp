@@ -156,10 +156,6 @@ void rpc::EuroscopeRPC::updatePresence()
 	std::string imageText = "";
 
     switch (tier_) {
-        case Tier::NONE:
-            imageKey = "main";
-            imageText = "French VACC";
-			break;
         case Tier::SILVER:
             imageKey = "silver";
             imageText = "On a " + std::to_string(onlineTime_) + " hour streak";
@@ -167,6 +163,11 @@ void rpc::EuroscopeRPC::updatePresence()
         case Tier::GOLD:
             if (imageKey.empty()) imageKey = "gold";
             imageText = "On a " + std::to_string(onlineTime_) + " hour streak";
+			break;
+        case Tier::NONE:
+        default:
+            imageKey = "main";
+            imageText = "French VACC";
 			break;
     }
 
@@ -198,8 +199,10 @@ void rpc::EuroscopeRPC::updateData()
 	updateConnectionType();
 	getAicraftCount();
 
-	isSilver_ = (std::time(nullptr) - StartTime > HOUR_THRESHOLD);
-	isGolden_ = (std::time(nullptr) - StartTime > 2 * HOUR_THRESHOLD);
+	if (std::time(nullptr) - StartTime > 2 * HOUR_THRESHOLD) tier_ = Tier::GOLD;
+    else if (std::time(nullptr) - StartTime > HOUR_THRESHOLD) tier_ = Tier::SILVER;
+	else tier_ = Tier::NONE;
+
 	onlineTime_ = static_cast<int>((std::time(nullptr) - StartTime) / 3600); // in hours
     isOnFire_ = (aircraftTracked_ >= ONFIRE_THRESHOLD);
 }
