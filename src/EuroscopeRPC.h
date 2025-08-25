@@ -28,6 +28,8 @@ namespace rpc {
         ~EuroscopeRPC();
 
 		// Plugin lifecycle methods
+		void Initialize();
+		void Shutdown();
         void Reset();
 
         // Radar commands
@@ -35,10 +37,6 @@ namespace rpc {
 		
         // Scope events
         void OnTimer(int Counter);
-
-        // Command handling
-        void RegisterCommand();
-        void unegisterCommand();
 
         // Getters
 		bool getPresence() const { return m_presence; }
@@ -53,12 +51,6 @@ namespace rpc {
 		void updateData();
         void runUpdate();
         void run();
-
-    public:
-        // Command IDs
-        std::string helpCommandId_;
-        std::string versionCommandId_;
-        std::string presenceCommandId_;
 
     private:
         // Plugin state
@@ -81,9 +73,6 @@ namespace rpc {
 		uint32_t totalTracks_ = 0;
 		uint32_t totalAircrafts_ = 0;
 		uint32_t aircraftTracked_ = 0;
-
-        // APIs
-        std::shared_ptr<EuroscopeRPCCommandProvider> CommandProvider_;
 
     };
 } // namespace rpc

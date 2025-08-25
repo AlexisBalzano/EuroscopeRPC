@@ -6,8 +6,14 @@
 
 using namespace rpc;
 
-EuroscopeRPC::EuroscopeRPC() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, "EuroscopeRPC", PLUGIN_VERSION, "Alexis Balzano", "Open Source"), m_stop(false) {};
-EuroscopeRPC::~EuroscopeRPC() = default;
+EuroscopeRPC::EuroscopeRPC() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, "EuroscopeRPC", PLUGIN_VERSION, "Alexis Balzano", "Open Source"), m_stop(false)
+{
+    Initialize();
+};
+EuroscopeRPC::~EuroscopeRPC()
+{
+	Shutdown();
+};
 
 rpc::EuroscopeRPC* myPluginInstance = nullptr;
 
@@ -24,11 +30,43 @@ void __declspec (dllexport) EuroScopePlugInExit()
     delete myPluginInstance;
 }
 
+void EuroscopeRPC::Initialize()
+{
+    StartTime = time(nullptr);
+
+    try
+    {
+        initialized_ = true;
+    }
+    catch (const std::exception& e)
+    {
+		DisplayMessage("Failed to initialize EuroscopeRPC: " + std::string(e.what()), "Error");
+    }
+    m_stop = false;
+    m_thread = std::thread(&EuroscopeRPC::run, this);
+	DisplayMessage("EuroscopeRPC initialized successfully", "Status");
+}
+
+void EuroscopeRPC::Shutdown()
+{
+    if (initialized_)
+    {
+        initialized_ = false;
+        trackedCallsigns_.clear();
+    }
+    m_stop = true;
+    if (m_thread.joinable())
+        m_thread.join();
+
+	DisplayMessage("EuroscopeRPC shutdown complete", "Status");
+}
+
 void rpc::EuroscopeRPC::Reset()
 {
 }
 
 void EuroscopeRPC::DisplayMessage(const std::string &message, const std::string &sender) {
+    DisplayUserMessage("EuroscopeRPC", sender.c_str(), message.c_str(), true, true, false, false, false);
 }
 
 void rpc::EuroscopeRPC::discordSetup()
@@ -36,13 +74,13 @@ void rpc::EuroscopeRPC::discordSetup()
     discord::RPCManager::get()
         .setClientID(APPLICATION_ID)
         .onReady([this](discord::User const& user) {
-        //LOG_DEBUG(Logger::LogLevel::info, "Discord: connected to user " + user.username + "#" + user.discriminator + " - " + user.id);
+		DisplayMessage("Connected to Discord as " + user.username + "#" + user.discriminator, "Discord");
             })
         .onDisconnected([this](int errcode, std::string_view message) {
-        //LOG_DEBUG(Logger::LogLevel::info, "Discord: disconnected with error code " + std::to_string(errcode) + " - " + std::string(message));
+		DisplayMessage("Disconnected from Discord: " + std::to_string(errcode) + " - " + std::string(message), "Discord");
             })
         .onErrored([this](int errcode, std::string_view message) {
-        //LOG_DEBUG(Logger::LogLevel::Error, "Discord: error with code " + std::to_string(errcode) + " - " + std::string(message));
+		DisplayMessage("Discord error: " + std::to_string(errcode) + " - " + std::string(message), "Discord");
             });
 }
 
@@ -146,9 +184,22 @@ void rpc::EuroscopeRPC::updatePresence()
 void rpc::EuroscopeRPC::updateData()
 {
     isControllerATC_ = false;
-	isObserver_ = false;
-    currentController_ = "";
+	isObserver_ = true;
+    currentController_ = "AB_OBS";
     currentFrequency_ = "";
+
+    //GetConnectionType();
+    /*const   int     CONNECTION_TYPE_NO = 0;
+    const   int     CONNECTION_TYPE_DIRECT = 1;
+    const   int     CONNECTION_TYPE_VIA_PROXY = 2;
+    const   int     CONNECTION_TYPE_SIMULATOR_SERVER = 3;
+    const   int     CONNECTION_TYPE_PLAYBACK = 4;
+    const   int     CONNECTION_TYPE_SIMULATOR_CLIENT = 5;
+    const   int     CONNECTION_TYPE_SWEATBOX = 6;*/
+
+
+
+
 
     /*auto connectionData = fsdAPI_->getConnection();
     if (connectionData) {
@@ -168,10 +219,14 @@ void rpc::EuroscopeRPC::updateData()
 			currentFrequency_ = freq.substr(0, freq.length() - 6) + "." + freq.substr(freq.length() - 6, 3);
         }
     }*/
+	//CController controller = CController::CController();
+    //isControllerATC_ = controller.IsController();
 
     //totalAircrafts_ = static_cast<uint32_t>(aircraftAPI_->getAll().size());
 
     aircraftTracked_ = 0;
+	totalAircrafts_ = 5;
+    totalTracks_ = 20;
     /*std::vector<ControllerData::ControllerDataModel> controllerDatas = controllerDataAPI_->getAll();
     for (const auto& controllerData : controllerDatas) {
         if (controllerData.ownedByMe) {
