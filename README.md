@@ -1,6 +1,6 @@
-﻿# 🚦 NeoRPC
+﻿# 🚦 EuroscopeRPC
 
-**Discord Rich Presence integration for NeoRadar.**  
+**Discord Rich Presence integration for Euroscope.**  
 Bring your ATC sessions to life with dynamic Discord status updates!
 
 ---
@@ -31,19 +31,10 @@ Bring your ATC sessions to life with dynamic Discord status updates!
 ---
 
 ## 🚀 Getting Started
-`git clone https://github.com/AlexisBalzano/NeoRPC.git` <br>
-`cd NeoRPC`<br>
-`cmake -B build -G`<br>
-`Ninja -DCMAKE_BUILD_TYPE=Release`<br>
-`cmake --build build`
 
----
-
-## 🛠 Requirements
-
-- C++23 compiler
-- CMake >= 3.14 (tested with 3.31.6-msvc6)
-- Ninja build system
+1. **Download the latest release** from the [Releases]
+2. **Extract the ZIP file** to Euroscope's plugin directory.
+3. **Load the plugin** in Euroscope via `Other Set > Plugins`.
 
 ---
 
