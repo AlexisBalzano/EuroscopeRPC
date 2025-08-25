@@ -73,8 +73,6 @@ namespace rpc {
 		std::thread m_thread;
 
 		int connectionType_ = State::IDLE;
-		bool isControllerATC_ = false;
-		bool isObserver_ = false;
 
 		int tier_ = Tier::NONE;
         bool isOnFire_ = false;

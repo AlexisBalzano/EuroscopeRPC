@@ -128,23 +128,23 @@ void rpc::EuroscopeRPC::updatePresence()
 
     switch (connectionType_) {
     case State::CONTROLLING:
-        state = "Controlling " + currentController_ + " " + currentFrequency_;
-        controller = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
+        controller = "Controlling " + currentController_ + " " + currentFrequency_;
+        state = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
         rpc.getPresence().setSmallImageKey("radarlogo");
         break;
     case State::OBSERVING:
-        state = "Observing as " + currentController_;
-        controller = "Aircraft in range: " + std::to_string(totalAircrafts_);
+        controller = "Observing as " + currentController_;
+        state = "Aircraft in range: " + std::to_string(totalAircrafts_);
         rpc.getPresence().setSmallImageKey("");
         break;
     case State::SWEATBOX:
-        state = "In Sweatbox";
-        controller = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
+        controller = "In Sweatbox";
+        state = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
         rpc.getPresence().setSmallImageKey("radarlogo");
         break;
     case State::PLAYBACK:
-        state = "In Playback";
-        controller = "Aircraft in range: " + std::to_string(totalAircrafts_);
+        controller = "In Playback";
+        state = "Aircraft in range: " + std::to_string(totalAircrafts_);
         rpc.getPresence().setSmallImageKey("");
         break;
     default:
@@ -195,44 +195,37 @@ void rpc::EuroscopeRPC::updatePresence()
 
 void rpc::EuroscopeRPC::updateData()
 {
-    isControllerATC_ = false;
-	isObserver_ = true;
-    currentController_ = "AB_OBS";
-    currentFrequency_ = "";
 
-    //GetConnectionType();
-    /*const   int     CONNECTION_TYPE_NO = 0;
-    const   int     CONNECTION_TYPE_DIRECT = 1;
-    const   int     CONNECTION_TYPE_VIA_PROXY = 2;
-    const   int     CONNECTION_TYPE_SIMULATOR_SERVER = 3;
-    const   int     CONNECTION_TYPE_PLAYBACK = 4;
-    const   int     CONNECTION_TYPE_SIMULATOR_CLIENT = 5;
-    const   int     CONNECTION_TYPE_SWEATBOX = 6;*/
+    CController selfController = myPluginInstance->ControllerMyself();
+	currentController_ = selfController.GetCallsign();
+	currentFrequency_ = selfController.IsController() ? std::to_string(selfController.GetPrimaryFrequency()) : "";
+
+    int euroscopeConnectionType = myPluginInstance->GetConnectionType();
+    switch (euroscopeConnectionType) {
+        case CONNECTION_TYPE_NO:
+            connectionType_ = State::IDLE;
+			break;
+        case CONNECTION_TYPE_DIRECT:
+            if (selfController.IsController()) {
+                connectionType_ = State::CONTROLLING;
+				currentFrequency_ = std::to_string(selfController.GetPrimaryFrequency());
+            }
+            else connectionType_ = State::OBSERVING;
+			currentController_ = selfController.GetCallsign();
+            break;
+        case CONNECTION_TYPE_SWEATBOX:
+			connectionType_ = State::SWEATBOX;
+			break;
+        case CONNECTION_TYPE_PLAYBACK:
+			connectionType_ = State::PLAYBACK;
+			break;
+        default:
+			DisplayMessage("Unknown connection type: " + std::to_string(euroscopeConnectionType), "Error");
+			connectionType_ = State::IDLE;
+			break;
+    }
 
 
-
-
-
-    /*auto connectionData = fsdAPI_->getConnection();
-    if (connectionData) {
-        if (connectionData->facility != Fsd::NetworkFacility::OBS) {
-            isControllerATC_ = true;
-            isObserver_ = false;
-        }
-        else {
-            isControllerATC_ = false;
-            isObserver_ = true;
-        }
-
-        currentController_ = connectionData->callsign;
-        if (connectionData->frequencies.empty()) currentFrequency_ = "";
-        else {
-			std::string freq = std::to_string(connectionData->frequencies[0]);
-			currentFrequency_ = freq.substr(0, freq.length() - 6) + "." + freq.substr(freq.length() - 6, 3);
-        }
-    }*/
-	//CController controller = CController::CController();
-    //isControllerATC_ = controller.IsController();
 
     //totalAircrafts_ = static_cast<uint32_t>(aircraftAPI_->getAll().size());
 
