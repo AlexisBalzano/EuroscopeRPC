@@ -62,6 +62,8 @@ namespace rpc {
         void changeIdlingText();
 		void updatePresence();
 		void updateData();
+		void updateConnectionType();
+        void getAicraftCount();
         void runUpdate();
         void run();
 

@@ -195,57 +195,61 @@ void rpc::EuroscopeRPC::updatePresence()
 
 void rpc::EuroscopeRPC::updateData()
 {
-
-    CController selfController = myPluginInstance->ControllerMyself();
-	currentController_ = selfController.GetCallsign();
-	currentFrequency_ = selfController.IsController() ? std::to_string(selfController.GetPrimaryFrequency()) : "";
-
-    int euroscopeConnectionType = myPluginInstance->GetConnectionType();
-    switch (euroscopeConnectionType) {
-        case CONNECTION_TYPE_NO:
-            connectionType_ = State::IDLE;
-			break;
-        case CONNECTION_TYPE_DIRECT:
-            if (selfController.IsController()) {
-                connectionType_ = State::CONTROLLING;
-				currentFrequency_ = std::to_string(selfController.GetPrimaryFrequency());
-            }
-            else connectionType_ = State::OBSERVING;
-			currentController_ = selfController.GetCallsign();
-            break;
-        case CONNECTION_TYPE_SWEATBOX:
-			connectionType_ = State::SWEATBOX;
-			break;
-        case CONNECTION_TYPE_PLAYBACK:
-			connectionType_ = State::PLAYBACK;
-			break;
-        default:
-			DisplayMessage("Unknown connection type: " + std::to_string(euroscopeConnectionType), "Error");
-			connectionType_ = State::IDLE;
-			break;
-    }
-
-
-
-    //totalAircrafts_ = static_cast<uint32_t>(aircraftAPI_->getAll().size());
-
-    aircraftTracked_ = 0;
-	totalAircrafts_ = 5;
-    totalTracks_ = 20;
-    /*std::vector<ControllerData::ControllerDataModel> controllerDatas = controllerDataAPI_->getAll();
-    for (const auto& controllerData : controllerDatas) {
-        if (controllerData.ownedByMe) {
-            ++aircraftTracked_;
-            if (trackedCallsigns_.insert(controllerData.callsign).second) {
-                ++totalTracks_;
-            }
-        }
-    }*/
+	updateConnectionType();
+	getAicraftCount();
 
 	isSilver_ = (std::time(nullptr) - StartTime > HOUR_THRESHOLD);
 	isGolden_ = (std::time(nullptr) - StartTime > 2 * HOUR_THRESHOLD);
 	onlineTime_ = static_cast<int>((std::time(nullptr) - StartTime) / 3600); // in hours
     isOnFire_ = (aircraftTracked_ >= ONFIRE_THRESHOLD);
+}
+
+void rpc::EuroscopeRPC::updateConnectionType()
+{
+    CController selfController = myPluginInstance->ControllerMyself();
+    int euroscopeConnectionType = myPluginInstance->GetConnectionType();
+    switch (euroscopeConnectionType) {
+    case CONNECTION_TYPE_NO:
+        connectionType_ = State::IDLE;
+        break;
+    case CONNECTION_TYPE_DIRECT:
+        if (selfController.IsController()) {
+            connectionType_ = State::CONTROLLING;
+            std::string freq = std::to_string(selfController.GetPrimaryFrequency());
+            currentFrequency_ = freq.substr(0, freq.length() - 3);
+        }
+        else connectionType_ = State::OBSERVING;
+        currentController_ = selfController.GetCallsign();
+        break;
+    case CONNECTION_TYPE_SWEATBOX:
+        connectionType_ = State::SWEATBOX;
+        break;
+    case CONNECTION_TYPE_PLAYBACK:
+        connectionType_ = State::PLAYBACK;
+        break;
+    default:
+        DisplayMessage("Unknown connection type: " + std::to_string(euroscopeConnectionType), "Error");
+        connectionType_ = State::IDLE;
+        break;
+    }
+}
+
+void rpc::EuroscopeRPC::getAicraftCount()
+{
+	totalAircrafts_ = 0;
+	aircraftTracked_ = 0;
+    CRadarTarget target = myPluginInstance->RadarTargetSelectFirst();
+
+    while (target.IsValid()) {
+		++totalAircrafts_;
+        if (target.GetCorrelatedFlightPlan().GetTrackingControllerIsMe()) {
+            ++aircraftTracked_;
+            if (trackedCallsigns_.insert(target.GetCallsign()).second) {
+                ++totalTracks_;
+            }
+        }
+        target = myPluginInstance->RadarTargetSelectNext(target);
+	}
 }
 
 void EuroscopeRPC::runUpdate() {
