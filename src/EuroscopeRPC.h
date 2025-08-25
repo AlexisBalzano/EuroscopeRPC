@@ -3,12 +3,12 @@
 #include <thread>
 #include <vector>
 #include <unordered_set>
-
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <EuroScopePlugIn.h>
 #include <discord-rpc.hpp>
-#include "SDK.h"
-#include "core/NeoRPCCommandProvider.h"
 
-using namespace PluginSDK;
+using namespace EuroScopePlugIn;
 
 
 namespace rpc {
@@ -19,19 +19,16 @@ namespace rpc {
 	constexpr uint32_t ONFIRE_THRESHOLD = 10;
 	constexpr uint32_t HOUR_THRESHOLD = 7200; // 2 hour
 
-    class NeoRPCCommandProvider;
+    class EuroscopeRPCCommandProvider;
 
-    class NeoRPC : public BasePlugin
+    class EuroscopeRPC : public CPlugIn
     {
     public:
-        NeoRPC();
-        ~NeoRPC();
+        EuroscopeRPC();
+        ~EuroscopeRPC();
 
 		// Plugin lifecycle methods
-        void Initialize(const PluginMetadata& metadata, CoreAPI* coreAPI, ClientInformation info) override;
-        void Shutdown() override;
         void Reset();
-        PluginMetadata GetMetadata() const override;
 
         // Radar commands
         void DisplayMessage(const std::string& message, const std::string& sender = "");
@@ -42,16 +39,6 @@ namespace rpc {
         // Command handling
         void RegisterCommand();
         void unegisterCommand();
-
-		// API Accessors
-        PluginSDK::Logger::LoggerAPI* GetLogger() const { return logger_; }
-        Aircraft::AircraftAPI* GetAircraftAPI() const { return aircraftAPI_; }
-        Airport::AirportAPI* GetAirportAPI() const { return airportAPI_; }
-        Chat::ChatAPI* GetChatAPI() const { return chatAPI_; }
-        Flightplan::FlightplanAPI* GetFlightplanAPI() const { return flightplanAPI_; }
-        Fsd::FsdAPI* GetFsdAPI() const { return fsdAPI_; }
-        PluginSDK::ControllerData::ControllerDataAPI* GetControllerDataAPI() const { return controllerDataAPI_; }
-		Tag::TagInterface* GetTagInterface() const { return tagInterface_; }
 
         // Getters
 		bool getPresence() const { return m_presence; }
@@ -96,17 +83,7 @@ namespace rpc {
 		uint32_t aircraftTracked_ = 0;
 
         // APIs
-        PluginMetadata metadata_;
-        ClientInformation clientInfo_;
-        Aircraft::AircraftAPI* aircraftAPI_ = nullptr;
-        Airport::AirportAPI* airportAPI_ = nullptr;
-        Chat::ChatAPI* chatAPI_ = nullptr;
-        Flightplan::FlightplanAPI* flightplanAPI_ = nullptr;
-        Fsd::FsdAPI* fsdAPI_ = nullptr;
-        PluginSDK::Logger::LoggerAPI* logger_ = nullptr;
-        PluginSDK::ControllerData::ControllerDataAPI* controllerDataAPI_ = nullptr;
-        Tag::TagInterface* tagInterface_ = nullptr;
-        std::shared_ptr<NeoRPCCommandProvider> CommandProvider_;
+        std::shared_ptr<EuroscopeRPCCommandProvider> CommandProvider_;
 
     };
 } // namespace rpc

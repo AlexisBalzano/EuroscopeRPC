@@ -1,92 +1,52 @@
-#include "NeoRPC.h"
+#include "EuroscopeRPC.h"
 #include <numeric>
 #include <chrono>
 
 #include "Version.h"
-#include "core/CompileCommands.h"
-
-#ifdef DEV
-#define LOG_DEBUG(loglevel, message) logger_->log(loglevel, message)
-#else
-#define LOG_DEBUG(loglevel, message) void(0)
-#endif
 
 using namespace rpc;
 
-NeoRPC::NeoRPC() : m_stop(false), controllerDataAPI_(nullptr) {};
-NeoRPC::~NeoRPC() = default;
+EuroscopeRPC::EuroscopeRPC() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, "EuroscopeRPC", PLUGIN_VERSION, "Alexis Balzano", "Open Source"), m_stop(false) {};
+EuroscopeRPC::~EuroscopeRPC() = default;
 
-void NeoRPC::Initialize(const PluginMetadata &metadata, CoreAPI *coreAPI, ClientInformation info)
+rpc::EuroscopeRPC* myPluginInstance = nullptr;
+
+void __declspec (dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn** ppPlugInInstance)
 {
-    metadata_ = metadata;
-    clientInfo_ = info;
-    CoreAPI *lcoreAPI = coreAPI;
-    aircraftAPI_ = &lcoreAPI->aircraft();
-    airportAPI_ = &lcoreAPI->airport();
-    chatAPI_ = &lcoreAPI->chat();
-    flightplanAPI_ = &lcoreAPI->flightplan();
-    fsdAPI_ = &lcoreAPI->fsd();
-    controllerDataAPI_ = &lcoreAPI->controllerData();
-    logger_ = &lcoreAPI->logger();
-    tagInterface_ = lcoreAPI->tag().getInterface();
-	StartTime = time(nullptr);
-    
-    try
-    {
-        this->RegisterCommand();
-        initialized_ = true;
-    }
-    catch (const std::exception &e)
-    {
-        logger_->error("Failed to initialize NeoRPC: " + std::string(e.what()));
-    }
-	m_stop = false;
-	m_thread = std::thread(&NeoRPC::run, this);
+    // create the instance
+    *ppPlugInInstance = myPluginInstance = new rpc::EuroscopeRPC();
 }
 
-void NeoRPC::Shutdown()
+
+void __declspec (dllexport) EuroScopePlugInExit()
 {
-    if (initialized_)
-    {
-        initialized_ = false;
-        this->unegisterCommand();
-		trackedCallsigns_.clear();
-        LOG_DEBUG(Logger::LogLevel::Info, "NeoRPC shutdown complete");
-    }
-	m_stop = true;
-    if (m_thread.joinable())
-		m_thread.join();
+    // delete the instance
+    delete myPluginInstance;
 }
 
-void rpc::NeoRPC::Reset()
+void rpc::EuroscopeRPC::Reset()
 {
 }
 
-void NeoRPC::DisplayMessage(const std::string &message, const std::string &sender) {
-    Chat::ClientTextMessageEvent textMessage;
-    textMessage.sentFrom = "NeoRPC";
-    (sender.empty()) ? textMessage.message = ": " + message : textMessage.message = sender + ": " + message;
-    textMessage.useDedicatedChannel = true;
-
-    chatAPI_->sendClientMessage(textMessage);
+void EuroscopeRPC::DisplayMessage(const std::string &message, const std::string &sender) {
 }
 
-void rpc::NeoRPC::discordSetup()
+void rpc::EuroscopeRPC::discordSetup()
 {
     discord::RPCManager::get()
         .setClientID(APPLICATION_ID)
         .onReady([this](discord::User const& user) {
-        LOG_DEBUG(Logger::LogLevel::info, "Discord: connected to user " + user.username + "#" + user.discriminator + " - " + user.id);
+        //LOG_DEBUG(Logger::LogLevel::info, "Discord: connected to user " + user.username + "#" + user.discriminator + " - " + user.id);
             })
         .onDisconnected([this](int errcode, std::string_view message) {
-        LOG_DEBUG(Logger::LogLevel::info, "Discord: disconnected with error code " + std::to_string(errcode) + " - " + std::string(message));
+        //LOG_DEBUG(Logger::LogLevel::info, "Discord: disconnected with error code " + std::to_string(errcode) + " - " + std::string(message));
             })
         .onErrored([this](int errcode, std::string_view message) {
-        LOG_DEBUG(Logger::LogLevel::Error, "Discord: error with code " + std::to_string(errcode) + " - " + std::string(message));
+        //LOG_DEBUG(Logger::LogLevel::Error, "Discord: error with code " + std::to_string(errcode) + " - " + std::string(message));
             });
 }
 
-void rpc::NeoRPC::changeIdlingText()
+void rpc::EuroscopeRPC::changeIdlingText()
 {
     static int counter;
 	counter++;
@@ -117,7 +77,7 @@ void rpc::NeoRPC::changeIdlingText()
     idlingText_ = std::string(idlingTexts[counter % idlingTexts.size()]);
 }
 
-void rpc::NeoRPC::updatePresence()
+void rpc::EuroscopeRPC::updatePresence()
 {
     auto& rpc = discord::RPCManager::get();
     if (!m_presence) {
@@ -183,14 +143,14 @@ void rpc::NeoRPC::updatePresence()
         .refresh();
 }
 
-void rpc::NeoRPC::updateData()
+void rpc::EuroscopeRPC::updateData()
 {
     isControllerATC_ = false;
 	isObserver_ = false;
     currentController_ = "";
     currentFrequency_ = "";
 
-    auto connectionData = fsdAPI_->getConnection();
+    /*auto connectionData = fsdAPI_->getConnection();
     if (connectionData) {
         if (connectionData->facility != Fsd::NetworkFacility::OBS) {
             isControllerATC_ = true;
@@ -207,12 +167,12 @@ void rpc::NeoRPC::updateData()
 			std::string freq = std::to_string(connectionData->frequencies[0]);
 			currentFrequency_ = freq.substr(0, freq.length() - 6) + "." + freq.substr(freq.length() - 6, 3);
         }
-    }
+    }*/
 
-    totalAircrafts_ = static_cast<uint32_t>(aircraftAPI_->getAll().size());
+    //totalAircrafts_ = static_cast<uint32_t>(aircraftAPI_->getAll().size());
 
     aircraftTracked_ = 0;
-    std::vector<ControllerData::ControllerDataModel> controllerDatas = controllerDataAPI_->getAll();
+    /*std::vector<ControllerData::ControllerDataModel> controllerDatas = controllerDataAPI_->getAll();
     for (const auto& controllerData : controllerDatas) {
         if (controllerData.ownedByMe) {
             ++aircraftTracked_;
@@ -220,7 +180,7 @@ void rpc::NeoRPC::updateData()
                 ++totalTracks_;
             }
         }
-    }
+    }*/
 
 	isSilver_ = (std::time(nullptr) - StartTime > HOUR_THRESHOLD);
 	isGolden_ = (std::time(nullptr) - StartTime > 2 * HOUR_THRESHOLD);
@@ -228,11 +188,11 @@ void rpc::NeoRPC::updateData()
     isOnFire_ = (aircraftTracked_ >= ONFIRE_THRESHOLD);
 }
 
-void NeoRPC::runUpdate() {
+void EuroscopeRPC::runUpdate() {
 	this->updatePresence();
 }
 
-void NeoRPC::OnTimer(int Counter) {
+void EuroscopeRPC::OnTimer(int Counter) {
     if (Counter % 5 == 0) // Every 5 seconds
         updateData();
     if (Counter % 15 == 0) // Every 15 seconds
@@ -240,7 +200,7 @@ void NeoRPC::OnTimer(int Counter) {
     this->runUpdate();
 }
 
-void NeoRPC::run() {
+void EuroscopeRPC::run() {
     int counter = 1;
     discordSetup();
     discord::RPCManager::get().initialize();
@@ -258,9 +218,4 @@ void NeoRPC::run() {
         this->OnTimer(counter);
     }
     return;
-}
-
-PluginSDK::PluginMetadata NeoRPC::GetMetadata() const
-{
-    return {"NeoRPC", PLUGIN_VERSION, "French VACC"};
 }

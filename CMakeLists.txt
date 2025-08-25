@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake)
-project(NeoRPC VERSION "1.0.0")
+project(EuroscopeRPC VERSION "0.1.0")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+#set(CMAKE_CXX_FLAGS "/Zc:wchar_t-")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_compile_definitions(DIR_SEPARATOR="\\\\")
@@ -44,14 +45,18 @@ add_subdirectory(External/discord-presence)
 # Source files
 # To set after starting development
 set(SOURCES
-    src/NeoRPC.cpp
-    src/main.cpp
+    src/EuroscopeRPC.cpp
 )
 
 # Define the plugin library
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
-
+add_library(EUROSCOPE_SDK STATIC IMPORTED)
+set_target_properties(EUROSCOPE_SDK PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/External/EuroscopeSDK/lib/EuroScopePlugInDll.lib"
+)
 target_link_libraries(${PROJECT_NAME} PRIVATE discord-rpc)
+target_link_libraries(${PROJECT_NAME} PRIVATE EUROSCOPE_SDK)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/External/EuroScopeSDK/include)
 
 # Set output directory and properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
