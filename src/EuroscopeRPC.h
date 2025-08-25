@@ -10,6 +10,19 @@
 
 using namespace EuroScopePlugIn;
 
+enum State {
+    IDLE = 0,
+	CONTROLLING,
+	OBSERVING,
+    SWEATBOX,
+    PLAYBACK
+};
+
+enum Tier {
+    NONE = 0,
+    SILVER,
+    GOLD
+};
 
 namespace rpc {
     constexpr auto APPLICATION_ID = "1408567135428673546";
@@ -59,8 +72,11 @@ namespace rpc {
 		bool m_presence = true; // Send presence to Discord
 		std::thread m_thread;
 
+		int connectionType_ = State::IDLE;
 		bool isControllerATC_ = false;
 		bool isObserver_ = false;
+
+		int tier_ = Tier::NONE;
         bool isOnFire_ = false;
 		bool isSilver_ = false;
         bool isGolden_ = false;

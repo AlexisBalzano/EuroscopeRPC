@@ -126,36 +126,48 @@ void rpc::EuroscopeRPC::updatePresence()
     std::string controller = idlingText_;
 	std::string state = "Idling";
 
-    if (isControllerATC_) {
-        state = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
-        controller = "Controlling " + currentController_ + " " + currentFrequency_;
+    switch (connectionType_) {
+    case State::CONTROLLING:
+        state = "Controlling " + currentController_ + " " + currentFrequency_;
+        controller = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
         rpc.getPresence().setSmallImageKey("radarlogo");
-    }
-    else if (isObserver_) {
-        state = "Aircraft in range: " + std::to_string(totalAircrafts_);
-        controller = "Observing as " + currentController_;
-    }
-    else {
+        break;
+    case State::OBSERVING:
+        state = "Observing as " + currentController_;
+        controller = "Aircraft in range: " + std::to_string(totalAircrafts_);
         rpc.getPresence().setSmallImageKey("");
+        break;
+    case State::SWEATBOX:
+        state = "In Sweatbox";
+        controller = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
+        rpc.getPresence().setSmallImageKey("radarlogo");
+        break;
+    case State::PLAYBACK:
+        state = "In Playback";
+        controller = "Aircraft in range: " + std::to_string(totalAircrafts_);
+        rpc.getPresence().setSmallImageKey("");
+        break;
+    default:
+        rpc.getPresence().setSmallImageKey("");
+        break;
     }
 
     std::string imageKey = "";
 	std::string imageText = "";
 
-    if (isGolden_ && isOnFire_) {
-        rpc.getPresence()
-            .setLargeImageKey("both")
-            .setLargeImageText(std::to_string(onlineTime_) + " hour streak, On Fire!");
-    }
-
-    if (isSilver_) {
-        imageKey = "silver";
-        imageText = "On a " + std::to_string(onlineTime_) + " hour streak";
-	}
-
-    if (isGolden_) {
-        imageKey = "gold";
-        imageText = "On a " + std::to_string(onlineTime_) + " hour streak";
+    switch (tier_) {
+        case Tier::NONE:
+            imageKey = "main";
+            imageText = "French VACC";
+			break;
+        case Tier::SILVER:
+            imageKey = "silver";
+            imageText = "On a " + std::to_string(onlineTime_) + " hour streak";
+            break;
+        case Tier::GOLD:
+            if (imageKey.empty()) imageKey = "gold";
+            imageText = "On a " + std::to_string(onlineTime_) + " hour streak";
+			break;
     }
 
     if (isOnFire_) {
