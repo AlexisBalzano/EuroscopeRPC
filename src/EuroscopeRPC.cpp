@@ -209,6 +209,7 @@ void rpc::EuroscopeRPC::updateData()
 
 void rpc::EuroscopeRPC::updateConnectionType()
 {
+	connectionType_ = State::IDLE;
     CController selfController = myPluginInstance->ControllerMyself();
     int euroscopeConnectionType = myPluginInstance->GetConnectionType();
     switch (euroscopeConnectionType) {
