@@ -1,6 +1,7 @@
 #include "EuroscopeRPC.h"
 #include <numeric>
 #include <chrono>
+#include <algorithm>
 
 #include "Version.h"
 
@@ -224,6 +225,7 @@ void rpc::EuroscopeRPC::updateConnectionType()
         }
         else connectionType_ = State::OBSERVING;
         currentController_ = selfController.GetCallsign();
+		std::transform(currentController_.begin(), currentController_.end(), currentController_.begin(), ::toupper);
         break;
     case CONNECTION_TYPE_SWEATBOX:
         connectionType_ = State::SWEATBOX;
