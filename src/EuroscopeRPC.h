@@ -29,7 +29,7 @@ namespace rpc {
     static int64_t StartTime;
     static bool SendPresence = true;
 
-	constexpr uint32_t ONFIRE_THRESHOLD = 10;
+	constexpr uint32_t ONFIRE_THRESHOLD = 10; // 10 Traffics
 	constexpr uint32_t HOUR_THRESHOLD = 7200; // 2 hour
 
     class EuroscopeRPCCommandProvider;

@@ -89,14 +89,14 @@ void rpc::EuroscopeRPC::changeIdlingText()
 {
     static int counter;
 	counter++;
-    static constexpr std::array<std::string_view, 21> idlingTexts = {
+    static constexpr std::array<std::string_view, 41> idlingTexts = {
         "Waiting for traffic",
         "Monitoring frequencies",
         "Checking FL5000 for conflicts",
         "Watching the skies",
         "Searching for binoculars",
         "Listening to ATC chatter",
-        "Scanning for aircraft",
+        "Scanning for aircrafts",
         "Awaiting calls",
         "Tracking airspace",
         "Possible pilot deviation, I have a number...",
@@ -108,9 +108,29 @@ void rpc::EuroscopeRPC::changeIdlingText()
         "Radar scope screensaver",
 		"Checking NOTAMs",
 		"Deleting SIDs from Flight Plans",
-        "Answering radio check",
+        "Answering radio checks",
         "Trying to contact UNICOM",
-        "Arguing that France is not on strike"
+        "Arguing that France is not on strike",
+        "Waiting for a readback",
+        "Trying to find the strip printer",
+        "Explaining wake turbulence again",
+        "Reading the wrong scratchpad",
+        "Wondering where the handoff went",
+        "Assigning random headings professionally",
+        "Resolving TCAS diplomacy",
+        "Waiting for CPDLC to replace humanity",
+        "Watching pilots miss MIDDLE1",
+        "Monitoring questionable shortcuts",
+        "Spacing arrivals with hope and optimism",
+        "Politely denying shortcuts",
+        "Watching VFRs discover weather",
+        "Watching the approach sequence collapse",
+        "Trying to avoid paperwork",
+        "Trying to contact that one aircraft again",
+        "Ensuring everyone survives the merge",
+        "Explaining: standby MEANS STANDBY",
+        "Silently judging non-standard phraseology",
+        "Preparing emotionally for the next VFR"
     };
 
     idlingText_ = std::string(idlingTexts[counter % idlingTexts.size()]);
@@ -272,16 +292,16 @@ void EuroscopeRPC::OnTimer(int Counter) {
 
 void EuroscopeRPC::run() {
     int counter = 1;
-    discordSetup();
-    discord::RPCManager::get().initialize();
     auto& rpc = discord::RPCManager::get();
+    rpc.initialize();
+    discordSetup();
 
     while (true) {
         counter += 1;
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
         if (true == this->m_stop) {
-            discord::RPCManager::get().shutdown();
+            rpc.shutdown();
             return;
         }
         
