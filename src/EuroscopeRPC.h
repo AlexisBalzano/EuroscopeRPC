@@ -3,10 +3,11 @@
 #include <thread>
 #include <vector>
 #include <unordered_set>
+#include <string>
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <EuroScopePlugIn.h>
-#include <discord-rpc.hpp>
+#include <discord_rpc.h>
 
 using namespace EuroScopePlugIn;
 

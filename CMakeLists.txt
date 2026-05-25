@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake)
-project(EuroscopeRPC VERSION "0.1.0")
+project(EuroscopeRPC VERSION "1.0.2")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -40,7 +40,7 @@ include_directories(
 )
 
 # Find external dependencies
-add_subdirectory(External/discord-presence)
+add_subdirectory(External/discord-rpc)
 
 # Source files
 # To set after starting development
@@ -56,7 +56,7 @@ set_target_properties(EUROSCOPE_SDK PROPERTIES
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE discord-rpc)
 target_link_libraries(${PROJECT_NAME} PRIVATE EUROSCOPE_SDK)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/External/EuroScopeSDK/include)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/External/EuroScopeSDK/include ${CMAKE_SOURCE_DIR}/External/discord-rpc/include)
 
 # Set output directory and properties
 set_target_properties(${PROJECT_NAME} PROPERTIES

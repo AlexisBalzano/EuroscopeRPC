@@ -1,9 +1,6 @@
 [submodule "vcpkg"]
 	path = vcpkg
 	url = https://github.com/microsoft/vcpkg.git
-[submodule "discord-rpc"]
-	path = External/discord-rpc
-	url = https://github.com/multitheftauto/discord-rpc.git
 [submodule "External/discord-rpc"]
 	path = External/discord-rpc
 	url = https://github.com/multitheftauto/discord-rpc.git

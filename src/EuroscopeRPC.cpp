@@ -2,10 +2,46 @@
 #include <numeric>
 #include <chrono>
 #include <algorithm>
+#include <array>
+#include <string_view>
 
 #include "Version.h"
 
 using namespace rpc;
+
+rpc::EuroscopeRPC* myPluginInstance = nullptr;
+
+namespace {
+    void OnDiscordReady(const DiscordUser* user)
+    {
+        if (user != nullptr && myPluginInstance != nullptr) {
+            myPluginInstance->DisplayMessage("Connected to Discord as " + std::string(user->username) + "#" + std::string(user->discriminator), "Discord");
+        }
+    }
+
+    void OnDiscordDisconnected(int errcode, const char* message)
+    {
+        if (myPluginInstance != nullptr) {
+            myPluginInstance->DisplayMessage("Disconnected from Discord: " + std::to_string(errcode) + " - " + std::string(message ? message : ""), "Discord");
+        }
+    }
+
+    void OnDiscordErrored(int errcode, const char* message)
+    {
+        if (myPluginInstance != nullptr) {
+            myPluginInstance->DisplayMessage("Discord error: " + std::to_string(errcode) + " - " + std::string(message ? message : ""), "Discord");
+        }
+    }
+
+    DiscordEventHandlers CreateDiscordHandlers()
+    {
+        DiscordEventHandlers handlers{};
+        handlers.ready = OnDiscordReady;
+        handlers.disconnected = OnDiscordDisconnected;
+        handlers.errored = OnDiscordErrored;
+        return handlers;
+    }
+}
 
 EuroscopeRPC::EuroscopeRPC() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, "EuroscopeRPC", PLUGIN_VERSION, "Alexis Balzano", "Open Source"), m_stop(false)
 {
@@ -15,8 +51,6 @@ EuroscopeRPC::~EuroscopeRPC()
 {
 	Shutdown();
 };
-
-rpc::EuroscopeRPC* myPluginInstance = nullptr;
 
 void __declspec (dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn** ppPlugInInstance)
 {
@@ -29,6 +63,7 @@ void __declspec (dllexport) EuroScopePlugInExit()
 {
     // delete the instance
     delete myPluginInstance;
+    myPluginInstance = nullptr;
 }
 
 void EuroscopeRPC::Initialize()
@@ -72,17 +107,8 @@ void EuroscopeRPC::DisplayMessage(const std::string &message, const std::string 
 
 void rpc::EuroscopeRPC::discordSetup()
 {
-    discord::RPCManager::get()
-        .setClientID(APPLICATION_ID)
-        .onReady([this](discord::User const& user) {
-		DisplayMessage("Connected to Discord as " + user.username + "#" + user.discriminator, "Discord");
-            })
-        .onDisconnected([this](int errcode, std::string_view message) {
-		DisplayMessage("Disconnected from Discord: " + std::to_string(errcode) + " - " + std::string(message), "Discord");
-            })
-        .onErrored([this](int errcode, std::string_view message) {
-		DisplayMessage("Discord error: " + std::to_string(errcode) + " - " + std::string(message), "Discord");
-            });
+    DiscordEventHandlers handlers = CreateDiscordHandlers();
+    Discord_Initialize(APPLICATION_ID, &handlers, 1, nullptr);
 }
 
 void rpc::EuroscopeRPC::changeIdlingText()
@@ -138,9 +164,8 @@ void rpc::EuroscopeRPC::changeIdlingText()
 
 void rpc::EuroscopeRPC::updatePresence()
 {
-    auto& rpc = discord::RPCManager::get();
     if (!m_presence) {
-        rpc.clearPresence();
+        Discord_ClearPresence();
         return;
     }
 
@@ -151,25 +176,20 @@ void rpc::EuroscopeRPC::updatePresence()
     case State::CONTROLLING:
         controller = "Controlling " + currentController_ + " " + currentFrequency_;
         state = "Aircraft tracked: " + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_);
-        rpc.getPresence().setSmallImageKey("radarlogo");
         break;
     case State::OBSERVING:
         controller = "Observing as " + currentController_;
         state = "Aircraft in range: " + std::to_string(totalAircrafts_);
-        rpc.getPresence().setSmallImageKey("");
         break;
     case State::SWEATBOX:
         controller = "In Sweatbox";
         state = "Aircraft tracked: (" + std::to_string(aircraftTracked_) + " of " + std::to_string(totalAircrafts_) + ")";
-        rpc.getPresence().setSmallImageKey("radarlogo");
         break;
     case State::PLAYBACK:
         controller = "In Playback";
         state = "Aircraft in range: " + std::to_string(totalAircrafts_);
-        rpc.getPresence().setSmallImageKey("");
         break;
     default:
-        rpc.getPresence().setSmallImageKey("");
         break;
     }
 
@@ -201,18 +221,29 @@ void rpc::EuroscopeRPC::updatePresence()
     if (imageKey.empty()) imageKey = "main";
 	if (imageText.empty()) imageText = "French VACC";
 
+    static thread_local std::string stateStorage;
+    static thread_local std::string detailsStorage;
+    static thread_local std::string largeImageKeyStorage;
+    static thread_local std::string largeImageTextStorage;
+    static thread_local std::string smallImageTextStorage;
 
-    rpc.getPresence()
-        .setState(state)
-		.setLargeImageKey(imageKey)
-		.setLargeImageText(imageText)
-        .setActivityType(discord::ActivityType::Game)
-        .setStatusDisplayType(discord::StatusDisplayType::Name)
-        .setDetails(controller)
-        .setStartTimestamp(StartTime)
-        .setSmallImageText("Total Tracks: " + std::to_string(totalTracks_))
-        .setInstance(true)
-        .refresh();
+    stateStorage = state;
+    detailsStorage = controller;
+    largeImageKeyStorage = imageKey;
+    largeImageTextStorage = imageText;
+    smallImageTextStorage = "Total Tracks: " + std::to_string(totalTracks_);
+
+    DiscordRichPresence presence{};
+    presence.state = stateStorage.c_str();
+    presence.details = detailsStorage.c_str();
+    presence.largeImageKey = largeImageKeyStorage.c_str();
+    presence.largeImageText = largeImageTextStorage.c_str();
+    presence.smallImageKey = (connectionType_ == State::CONTROLLING || connectionType_ == State::SWEATBOX) ? "radarlogo" : nullptr;
+    presence.smallImageText = smallImageTextStorage.c_str();
+    presence.startTimestamp = StartTime;
+    presence.instance = 1;
+
+    Discord_UpdatePresence(&presence);
 }
 
 void rpc::EuroscopeRPC::updateData()
@@ -292,16 +323,15 @@ void EuroscopeRPC::OnTimer(int Counter) {
 
 void EuroscopeRPC::run() {
     int counter = 1;
-    auto& rpc = discord::RPCManager::get();
-    rpc.initialize();
     discordSetup();
 
     while (true) {
         counter += 1;
         std::this_thread::sleep_for(std::chrono::seconds(1));
+        Discord_RunCallbacks();
 
         if (true == this->m_stop) {
-            rpc.shutdown();
+            Discord_Shutdown();
             return;
         }
         
