@@ -16,7 +16,8 @@ enum State {
 	CONTROLLING,
 	OBSERVING,
     SWEATBOX,
-    PLAYBACK
+    PLAYBACK,
+    PROXY,
 };
 
 enum Tier {

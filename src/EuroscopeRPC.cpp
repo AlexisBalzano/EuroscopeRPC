@@ -14,16 +14,16 @@ rpc::EuroscopeRPC* myPluginInstance = nullptr;
 namespace {
     void OnDiscordReady(const DiscordUser* user)
     {
-        if (user != nullptr && myPluginInstance != nullptr) {
-            myPluginInstance->DisplayMessage("Connected to Discord as " + std::string(user->username) + "#" + std::string(user->discriminator), "Discord");
-        }
+        //if (user != nullptr && myPluginInstance != nullptr) {
+        //    myPluginInstance->DisplayMessage("Connected to Discord as " + std::string(user->username) + "#" + std::string(user->discriminator), "Discord");
+        //}
     }
 
     void OnDiscordDisconnected(int errcode, const char* message)
     {
-        if (myPluginInstance != nullptr) {
-            myPluginInstance->DisplayMessage("Disconnected from Discord: " + std::to_string(errcode) + " - " + std::string(message ? message : ""), "Discord");
-        }
+        //if (myPluginInstance != nullptr) {
+        //    myPluginInstance->DisplayMessage("Disconnected from Discord: " + std::to_string(errcode) + " - " + std::string(message ? message : ""), "Discord");
+        //}
     }
 
     void OnDiscordErrored(int errcode, const char* message)
@@ -80,7 +80,7 @@ void EuroscopeRPC::Initialize()
     }
     m_stop = false;
     m_thread = std::thread(&EuroscopeRPC::run, this);
-	DisplayMessage("EuroscopeRPC initialized successfully", "Status");
+	//DisplayMessage("EuroscopeRPC initialized successfully", "Status");
 }
 
 void EuroscopeRPC::Shutdown()
@@ -164,7 +164,7 @@ void rpc::EuroscopeRPC::changeIdlingText()
 
 void rpc::EuroscopeRPC::updatePresence()
 {
-    if (!m_presence) {
+    if (!m_presence || connectionType_ == State::PROXY) {
         Discord_ClearPresence();
         return;
     }
@@ -283,6 +283,9 @@ void rpc::EuroscopeRPC::updateConnectionType()
         break;
     case CONNECTION_TYPE_PLAYBACK:
         connectionType_ = State::PLAYBACK;
+        break;
+	case CONNECTION_TYPE_VIA_PROXY:
+        connectionType_ = State::PROXY;
         break;
     default:
         DisplayMessage("Unknown connection type: " + std::to_string(euroscopeConnectionType), "Error");
