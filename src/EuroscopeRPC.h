@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <thread>
 #include <vector>
 #include <unordered_set>
 #include <string>
@@ -51,7 +50,7 @@ namespace rpc {
         void DisplayMessage(const std::string& message, const std::string& sender = "");
 		
         // Scope events
-        void OnTimer(int Counter);
+        void OnTimer(int Counter) override;
 
         // Getters
 		bool getPresence() const { return m_presence; }
@@ -67,16 +66,14 @@ namespace rpc {
 		void updateConnectionType();
         void getAicraftCount();
         void runUpdate();
-        void run();
 
     private:
         // Plugin state
         bool initialized_ = false;
-		bool m_stop;
 		bool m_presence = true; // Send presence to Discord
-		std::thread m_thread;
 
 		int connectionType_ = State::IDLE;
+		int lastUnknownConnectionType_ = -1;
 
 		int tier_ = Tier::NONE;
         bool isOnFire_ = false;

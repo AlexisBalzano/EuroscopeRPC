@@ -43,7 +43,7 @@ namespace {
     }
 }
 
-EuroscopeRPC::EuroscopeRPC() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, "EuroscopeRPC", PLUGIN_VERSION, "Alexis Balzano", "Open Source"), m_stop(false)
+EuroscopeRPC::EuroscopeRPC() : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, "EuroscopeRPC", PLUGIN_VERSION, "Alexis Balzano", "Open Source")
 {
     Initialize();
 };
@@ -78,8 +78,9 @@ void EuroscopeRPC::Initialize()
     {
 		DisplayMessage("Failed to initialize EuroscopeRPC: " + std::string(e.what()), "Error");
     }
-    m_stop = false;
-    m_thread = std::thread(&EuroscopeRPC::run, this);
+    // No thread of our own: Discord is driven from OnTimer, on EuroScope's main thread,
+    // because the plugin API OnTimer relies on is not thread safe
+    discordSetup();
 	//DisplayMessage("EuroscopeRPC initialized successfully", "Status");
 }
 
@@ -90,9 +91,7 @@ void EuroscopeRPC::Shutdown()
         initialized_ = false;
         trackedCallsigns_.clear();
     }
-    m_stop = true;
-    if (m_thread.joinable())
-        m_thread.join();
+    Discord_Shutdown();
 
 	DisplayMessage("EuroscopeRPC shutdown complete", "Status");
 }
@@ -288,7 +287,11 @@ void rpc::EuroscopeRPC::updateConnectionType()
         connectionType_ = State::PROXY;
         break;
     default:
-        DisplayMessage("Unknown connection type: " + std::to_string(euroscopeConnectionType), "Error");
+        // Checked every 5 seconds: report each unknown type once instead of flooding the chat
+        if (euroscopeConnectionType != lastUnknownConnectionType_) {
+            lastUnknownConnectionType_ = euroscopeConnectionType;
+            DisplayMessage("Unknown connection type: " + std::to_string(euroscopeConnectionType), "Error");
+        }
         connectionType_ = State::IDLE;
         break;
     }
@@ -322,23 +325,5 @@ void EuroscopeRPC::OnTimer(int Counter) {
     if (Counter % 15 == 0) // Every 15 seconds
         changeIdlingText();
     this->runUpdate();
-}
-
-void EuroscopeRPC::run() {
-    int counter = 1;
-    discordSetup();
-
-    while (true) {
-        counter += 1;
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        Discord_RunCallbacks();
-
-        if (true == this->m_stop) {
-            Discord_Shutdown();
-            return;
-        }
-        
-        this->OnTimer(counter);
-    }
-    return;
+    Discord_RunCallbacks();
 }
